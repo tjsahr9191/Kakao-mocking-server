@@ -20,7 +20,7 @@ def test_page():
 @app.route('/ready', methods=['POST'])
 def kakao_pay_ready_mock():
 
-    sleep(0.05)
+    # sleep(0.05)
 
     """
     Java 클라이언트의 카카오페이 결제 준비(POST /ready) 요청을 받아
