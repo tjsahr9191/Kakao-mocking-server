@@ -13,13 +13,13 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      # 2. Python 3.11 버전을 설치합니다. (버전 명시 추가)
+      # 2. Python 3.11 버전을 설치합니다.
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 4. AWS Resource에 접근할 수 있게 AWS credentials을 설정합니다.
+      # 3. AWS Resource에 접근할 수 있게 AWS credentials을 설정합니다.
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -27,24 +27,24 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      # 5. AWS ECR에 로그인합니다.
+      # 4. AWS ECR에 로그인합니다.
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 6. Docker 이미지를 빌드합니다.
+      # 5. Docker 이미지를 빌드합니다.
       - name: Build Docker image
-        run: docker build -t my-flask-app .
+        run: docker build -t kakao-mocking-server .
 
-      # 7. 빌드한 Docker 이미지에 ECR 주소로 태그를 지정합니다.
+      # 6. 빌드한 Docker 이미지에 ECR 주소로 태그를 지정합니다.
       - name: Tag Docker image
-        run: docker tag my-flask-app ${{ steps.login-ecr.outputs.registry }}/my-flask-app:latest
+        run: docker tag kakao-mocking-server ${{ steps.login-ecr.outputs.registry }}/kakao-mocking-server:latest
 
-      # 8. ECR에 Docker 이미지를 Push합니다.
+      # 7. ECR에 Docker 이미지를 Push합니다.
       - name: Push Docker image to ECR
-        run: docker push ${{ steps.login-ecr.outputs.registry }}/my-flask-app:latest
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/kakao-mocking-server:latest
 
-      # 9. SSH로 EC2에 접속하여 배포 스크립트를 실행합니다.
+      # 8. SSH로 EC2에 접속하여 배포 스크립트를 실행합니다.
       - name: Deploy to EC2 instance
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -52,14 +52,13 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script_stop: true
-          # script 블록 내부의 모든 라인을 추가로 들여쓰기하여 오류를 수정했습니다.
           script: |
             # 기존 컨테이너 중지 및 삭제
-            docker stop my-flask-app || true
-            docker rm my-flask-app || true
+            docker stop kakao-mocking-server || true
+            docker rm kakao-mocking-server || true
             
             # ECR에서 최신 이미지 pull
-            docker pull ${{ steps.login-ecr.outputs.registry }}/my-flask-app:latest
+            docker pull ${{ steps.login-ecr.outputs.registry }}/kakao-mocking-server:latest
             
-            # 새 컨테이너 실행 (80:5000 포트 매핑 및 .env 파일 사용)
-            docker run -d --env-file .env --name my-flask-app -p 80:5000 ${{ steps.login-ecr.outputs.registry }}/my-flask-app:latest
+            # .env 파일 없이 새 컨테이너 실행
+            docker run -d --name kakao-mocking-server -p 80:5000 ${{ steps.login-ecr.outputs.registry }}/kakao-mocking-server:latest
