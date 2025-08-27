@@ -13,14 +13,11 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      # 2. Python 3.9 버전을 설치합니다.
-      - name: Setup 3.11-slim
+      # 2. Python 3.11 버전을 설치합니다. (버전 명시 추가)
+      - name: Setup Python
         uses: actions/setup-python@v5
-
-      # 3. .env 파일을 생성합니다. (Flask 설정값)
-      # Github Secrets에 DOT_ENV 라는 이름으로 .env 파일 내용을 등록해야 합니다.
-#      - name: Create .env file
-#        run: echo "${{ secrets.DOT_ENV }}" > ./.env
+        with:
+          python-version: '3.11'
 
       # 4. AWS Resource에 접근할 수 있게 AWS credentials을 설정합니다.
       - name: Configure AWS credentials
@@ -35,7 +32,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 6. Docker 이미지를 빌드합니다. (Dockerfile이 프로젝트 루트에 있어야 합니다)
+      # 6. Docker 이미지를 빌드합니다.
       - name: Build Docker image
         run: docker build -t my-flask-app .
 
@@ -55,10 +52,8 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script_stop: true
+          # script 블록 내부의 모든 라인을 추가로 들여쓰기하여 오류를 수정했습니다.
           script: |
-#            EC2 서버에 .env 파일 생성
-#            echo "${{ secrets.DOT_ENV }}" > .env
-            
             # 기존 컨테이너 중지 및 삭제
             docker stop my-flask-app || true
             docker rm my-flask-app || true
@@ -66,6 +61,5 @@ jobs:
             # ECR에서 최신 이미지 pull
             docker pull ${{ steps.login-ecr.outputs.registry }}/my-flask-app:latest
             
-            # 새 컨테이너 실행 (80 포트로 접속 시 컨테이너의 5000 포트로 연결)
-            # --env-file 옵션으로 .env 파일의 환경변수를 컨테이너에 주입
+            # 새 컨테이너 실행 (80:5000 포트 매핑 및 .env 파일 사용)
             docker run -d --env-file .env --name my-flask-app -p 80:5000 ${{ steps.login-ecr.outputs.registry }}/my-flask-app:latest
